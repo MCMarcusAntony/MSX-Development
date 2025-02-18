@@ -3,11 +3,11 @@
 --
 -- UPDT8266.h
 --   Update ESP8266 firmware MSX Pico.
---   Revision 1.00
+--   Revision 1.20
 --
 --
 -- Requires SDCC and Fusion-C library to compile
--- Copyright (c) 2024 Oduvaldo Pavan Junior ( ducasp@ gmail.com )
+-- Copyright (c) 2024-2025 Oduvaldo Pavan Junior ( ducasp@ gmail.com )
 -- All rights reserved.
 --
 -- Redistribution and use of this source code or any derivative works, are
@@ -93,6 +93,7 @@ __at 0xFCC4 unsigned char uchSlot3Expanded;
 #define UartRXData() myPort7&1 ? 1 : 0
 const char chFiller[128] = {'U','P','D','8','2','6','6',' ','Y','o','u',' ','h','a','v','e',' ','a',' ','g','o','o','d',' ','t','i','m','e',' ','r','e','a','d','i','n','g',' ','t','h','i','s',' ','t','a','l','e',' ','o','f',' ','a','n',' ','w','e','i','r','d',' ','b','e','h','a','v','i','o','r',',',' ','s','i','t',' ','a','n','d',' ','h','a','v','e',' ','f','u','n',' ','a','s',' ','t','h','i','s',' ','i','s',' ','o','v','e','r','w','r','i','t','t','e','n','!',0x0d,0x0a,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 const char endUpdate[2] = {'E',0};
+const char clrAPCredentials[2] = {'a',0};
 const char versionResponse[1] = {'V'};
 const char certificateDone[2] = {'I',0};
 const char responseOK[2] = {'O','K'};
@@ -113,13 +114,15 @@ const char strUsage[] = "Usage:  UPDT8266 [options]\r\n\n"
                         " FW.BIN       to update ESP8266 firmware locally\r\n"
                         " CERT.BIN /c  to update TLS certificates locally\r\n\n"
                         " /u SERVER PORT FILEPATH  to update ESP8266 firmware remotely\r\n"
-                        " /c SERVER PORT FILEPATH  to update TLS certificates remotely\r\n\n"
-                        "Example:  UPDT8266 /u 192.168.31.1 80 /fw/fw.bin\r\n";
+                        " /c SERVER PORT FILEPATH  to update TLS certificates remotely\r\n"
+                        " /a           to clear access point credentials\r\n\n"
+                        "Example:  UPDT8266 /u 192.168.31.1 80 /fw/fw.bin\r\n          UPDT8266 /a\r\n";
 const char chFiller2[128] = {'U','P','D','8','2','6','6',' ','Y','o','u',' ','h','a','v','e',' ','a',' ','g','o','o','d',' ','t','i','m','e',' ','r','e','a','d','i','n','g',' ','t','h','i','s',' ','t','a','l','e',' ','o','f',' ','a','n',' ','w','e','i','r','d',' ','b','e','h','a','v','i','o','r',',',' ','s','i','t',' ','a','n','d',' ','h','a','v','e',' ','f','u','n',' ','a','s',' ','t','h','i','s',' ','i','s',' ','o','v','e','r','w','r','i','t','t','e','n','!',0x0d,0x0a,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 unsigned int uiPort;
 long lPort;
 unsigned char ucLocalUpdate;
 unsigned char ucIsFw;
+unsigned char ucClearAp;
 unsigned int uiTimeout;
 unsigned char uchOriginalProgramSlot,uchOriginalProgramSubSlot;
 unsigned char uchOriginalPicoSlot,uchOriginalPicoMemSubSlot;

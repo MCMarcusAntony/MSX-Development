@@ -2,11 +2,11 @@
 --
 -- UPDT8266.c
 --   Update ESP8266 firmware MSX Pico.
---   Revision 1.00
+--   Revision 1.10
 --
 --
 -- Requires SDCC and Fusion-C library to compile
--- Copyright (c) 2024 Oduvaldo Pavan Junior ( ducasp@ gmail.com )
+-- Copyright (c) 2024-2025 Oduvaldo Pavan Junior ( ducasp@ gmail.com )
 -- All rights reserved.
 --
 -- Redistribution and use of this source code or any derivative works, are
@@ -165,9 +165,9 @@ unsigned int IsValidInput (char**argv, int argc, unsigned char *cServer, unsigne
 		    if ((argc==1)||(argc==2))
             {
                 strcpy (cFile,Input);
-                ucLocalUpdate = 1;
                 if (argc==2)
                 {
+                    ucLocalUpdate = 1;
                     Input = (unsigned char*)argv[1];
                     if ((Input[0]=='/')&&((Input[1]=='c')||(Input[1]=='C')))
                         ucIsFw=0;
@@ -176,7 +176,17 @@ unsigned int IsValidInput (char**argv, int argc, unsigned char *cServer, unsigne
 
                 }
                 else
-                    ucIsFw=1;
+                {
+                    Input = (unsigned char*)argv[0];
+                    if ((Input[0]=='/')&&((Input[1]=='a')||(Input[1]=='A')))
+                        ucClearAp=1;
+                    else
+                    {
+                        ucIsFw=1;
+                        ucLocalUpdate = 1;
+                    }
+                }
+
             }
             else
             {
@@ -467,8 +477,9 @@ int main(char** argv, int argc)
     ucVerMajor = 0;
     ucVerMinor = 0;
     TickCount = 0; //this guarantees no leap for 18 minutes, more than enough so we do not need to check for jiffy leaping
+    ucClearAp = 0;
 
-	printf("> MSX Pico ESP8266 FW Update Tool v1.00 <\r\n(c) 2024 Oduvaldo Pavan Junior - ducasp@gmail.com\r\n\n");
+	printf("> MSX Pico ESP8266 FW Update Tool v1.10 <\r\n(c) 2024-2025 Oduvaldo Pavan Junior - ducasp@gmail.com\r\n\n");
 
     if (IsValidInput(argv, argc, ucServer, ucFile, ucPort))
     {
@@ -509,193 +520,196 @@ int main(char** argv, int argc)
                 }
                 printf ("FW Version: %c.%c\r\n",ucVerMajor+'0',ucVerMinor+'0');
 
-                if (ucLocalUpdate)
+                if (ucClearAp)
                 {
-                    //ok, we are going to try to update fw from local file
-                    iFile = Open (ucFile,O_RDONLY);
-                    //Could open the file?
-                    if (iFile!=-1)
+                    TxByte('a'); //Request clear access point credentials
+                    bResponse = WaitForRXData(clrAPCredentials,2,1800,true,false,NULL,0);
+                    if (bResponse)
+                        printf ("Clear access point credentials success!\r\n");
+                    else
+                        printf ("Clear access point credentials failure!\r\n");
+                }
+                else
+                {
+                    if (ucLocalUpdate)
                     {
-                        // Why not use _size from fusion-c?
-                        // Because it is not DOS2 compatible, and we use DOS2
-                        // Why not use Lseek from fusion-c?
-                        // Although it calls 0x4A in DOS 2, it won't update the pointer
-                        // with the current position
-                        regs.Words.HL = 0; //set pointer as 0
-                        regs.Words.DE = 0; //so it will return the position
-                        regs.Bytes.A = 2; //relative to the end of file, i.e.:file size
-                        regs.Bytes.B = (unsigned char)(iFile&0xff);
-                        DosCall(0x4A, &regs, REGS_ALL, REGS_ALL); // MOVE FILE HANDLER
-                        if (regs.Bytes.A == 0) //moved, now get the file handler position, i.e.: size
-                            SentFileSize = (unsigned long)(regs.Words.HL)&0xffff | ((unsigned long)(regs.Words.DE)<<16)&0xffff0000;
-                        else
-                            SentFileSize = 0;
-                        // Convert to string
-                        ultostr(SentFileSize,chFileSize,10);
-                        Close(iFile);
-                        if (ucIsFw)
-                            printf ("Updating FW...\r\nPlease Wait, it can take up to a few minutes!\r\nAs long as the animation moves, it is in progress!\r\n");
-                        else
-                            printf ("Updating Certificates...\r\nPlease Wait, it can take up to a few minutes!\r\nAs long as the animation moves, it is in progress!\r\n");
-                        printf ("File: %s Size: %s \r\n",ucFile,chFileSize);
-                        if (SentFileSize)
+                        //ok, we are going to try to update fw from local file
+                        iFile = Open (ucFile,O_RDONLY);
+                        //Could open the file?
+                        if (iFile!=-1)
                         {
-                            iFile = Open (ucFile,O_RDONLY);
-                            if (iFile!=-1)
+                            // Why not use _size from fusion-c?
+                            // Because it is not DOS2 compatible, and we use DOS2
+                            // Why not use Lseek from fusion-c?
+                            // Although it calls 0x4A in DOS 2, it won't update the pointer
+                            // with the current position
+                            regs.Words.HL = 0; //set pointer as 0
+                            regs.Words.DE = 0; //so it will return the position
+                            regs.Bytes.A = 2; //relative to the end of file, i.e.:file size
+                            regs.Bytes.B = (unsigned char)(iFile&0xff);
+                            DosCall(0x4A, &regs, REGS_ALL, REGS_ALL); // MOVE FILE HANDLER
+                            if (regs.Bytes.A == 0) //moved, now get the file handler position, i.e.: size
+                                SentFileSize = (unsigned long)(regs.Words.HL)&0xffff | ((unsigned long)(regs.Words.DE)<<16)&0xffff0000;
+                            else
+                                SentFileSize = 0;
+                            // Convert to string
+                            ultostr(SentFileSize,chFileSize,10);
+                            Close(iFile);
+                            if (ucIsFw)
+                                printf ("Updating FW...\r\nPlease Wait, it can take up to a few minutes!\r\nAs long as the animation moves, it is in progress!\r\n");
+                            else
+                                printf ("Updating Certificates...\r\nPlease Wait, it can take up to a few minutes!\r\nAs long as the animation moves, it is in progress!\r\n");
+                            printf ("File: %s Size: %s \r\n",ucFile,chFileSize);
+                            if (SentFileSize)
                             {
-                                FileRead = MyRead(iFile, ucServer,256); //try to read 256 bytes of data
-                                if (FileRead == 256)
+                                iFile = Open (ucFile,O_RDONLY);
+                                if (iFile!=-1)
                                 {
-                                    //Now request to start update over serial
-                                    if (ucIsFw)
-                                        TxByte('Z'); //Request start of RS232 update
-                                    else
-                                        TxByte('Y'); //Request start of RS232 cert update
-                                    TxByte(0);
-                                    TxByte(12);
-                                    TxByte((unsigned char)(SentFileSize&0xff));
-                                    TxByte((unsigned char)((SentFileSize&0xff00)>>8));
-                                    TxByte((unsigned char)((SentFileSize&0xff0000)>>16));
-                                    TxByte((unsigned char)((SentFileSize&0xff000000)>>24));
-                                    TxByte((unsigned char)((SentFileSize&0xff00000000)>>32));
-                                    TxByte((unsigned char)((SentFileSize&0xff0000000000)>>40));
-                                    TxByte((unsigned char)((SentFileSize&0xff000000000000)>>48));
-                                    TxByte((unsigned char)((SentFileSize&0xff00000000000000)>>56));
-                                    TxByte(ucServer[0]);
-                                    TxByte(ucServer[1]);
-                                    TxByte(ucServer[2]);
-                                    TxByte(ucServer[3]);
-
-                                    if (ucIsFw)
-                                        bResponse = WaitForRXData(responseRSFWUpdate,2,60,true,false,NULL,0);
-                                    else
-                                        bResponse = WaitForRXData(responseRSCERTUpdate,2,60,true,false,NULL,0);
-
-                                    if (!bResponse)
-                                        printf("Error requesting to start firmware update.\r\n");
-                                    else
+                                    FileRead = MyRead(iFile, ucServer,256); //try to read 256 bytes of data
+                                    if (FileRead == 256)
                                     {
-                                        uiAnimationTimeOut = TickCount + 9;
-                                        do
+                                        //Now request to start update over serial
+                                        if (ucIsFw)
+                                            TxByte('Z'); //Request start of RS232 update
+                                        else
+                                            TxByte('Y'); //Request start of RS232 cert update
+                                        TxByte(0);
+                                        TxByte(12);
+                                        TxByte((unsigned char)(SentFileSize&0xff));
+                                        TxByte((unsigned char)((SentFileSize&0xff00)>>8));
+                                        TxByte((unsigned char)((SentFileSize&0xff0000)>>16));
+                                        TxByte((unsigned char)((SentFileSize&0xff000000)>>24));
+                                        TxByte((unsigned char)((SentFileSize&0xff00000000)>>32));
+                                        TxByte((unsigned char)((SentFileSize&0xff0000000000)>>40));
+                                        TxByte((unsigned char)((SentFileSize&0xff000000000000)>>48));
+                                        TxByte((unsigned char)((SentFileSize&0xff00000000000000)>>56));
+                                        TxByte(ucServer[0]);
+                                        TxByte(ucServer[1]);
+                                        TxByte(ucServer[2]);
+                                        TxByte(ucServer[3]);
+
+                                        if (ucIsFw)
+                                            bResponse = WaitForRXData(responseRSFWUpdate,2,60,true,false,NULL,0);
+                                        else
+                                            bResponse = WaitForRXData(responseRSCERTUpdate,2,60,true,false,NULL,0);
+
+                                        if (!bResponse)
+                                            printf("Error requesting to start firmware update.\r\n");
+                                        else
                                         {
-                                            --uiAnimationTimeOut;
-                                            if (TickCount>=uiAnimationTimeOut)
+                                            uiAnimationTimeOut = TickCount + 9;
+                                            do
                                             {
-                                                uiAnimationTimeOut = 9;
-                                                //Our nice animation to show we are not stuck
-                                                printf("%s",advance[i%5]); // next animation step
-                                                ++i;
-                                            }
-                                            if (!ucFirstBlock)
-                                            {
-                                                FileRead = MyRead(iFile, ucServer,256); //try to read 256 bytes of data
-                                                if (FileRead ==0)
+                                                --uiAnimationTimeOut;
+                                                if (TickCount>=uiAnimationTimeOut)
                                                 {
-                                                    printf("\rError reading file...\r\n");
+                                                    uiAnimationTimeOut = 9;
+                                                    //Our nice animation to show we are not stuck
+                                                    printf("%s",advance[i%5]); // next animation step
+                                                    ++i;
+                                                }
+                                                if (!ucFirstBlock)
+                                                {
+                                                    FileRead = MyRead(iFile, ucServer,256); //try to read 256 bytes of data
+                                                    if (FileRead ==0)
+                                                    {
+                                                        printf("\rError reading file...\r\n");
+                                                        break;
+                                                    }
+                                                }
+                                                else
+                                                    ucFirstBlock = 0;
+                                                //Send the block
+                                                TxByte('z'); //Write block
+                                                TxByte((unsigned char)((FileRead&0xff00)>>8));
+                                                TxByte((unsigned char)(FileRead&0xff));
+                                                for (ii=0;ii<256;ii++)
+                                                    TxByte(ucServer[ii]);
+
+                                                bResponse = WaitForRXData(responseWRBlock,2,600,true,false,NULL,0);
+
+                                                if (!bResponse)
+                                                {
+                                                    printf("\rError requesting to write firmware block.\r\n");
                                                     break;
                                                 }
+                                                SentFileSize = SentFileSize - FileRead;
                                             }
-                                            else
-                                                ucFirstBlock = 0;
-                                            //Send the block
-                                            TxByte('z'); //Write block
-                                            TxByte((unsigned char)((FileRead&0xff00)>>8));
-                                            TxByte((unsigned char)(FileRead&0xff));
-                                            for (ii=0;ii<256;ii++)
-                                                TxByte(ucServer[ii]);
+                                            while(SentFileSize);
+                                            printf("%s",aDone);
 
-                                            bResponse = WaitForRXData(responseWRBlock,2,600,true,false,NULL,0);
-
-                                            if (!bResponse)
-                                            {
-                                                printf("\rError requesting to write firmware block.\r\n");
-                                                break;
-                                            }
-                                            SentFileSize = SentFileSize - FileRead;
+                                            //if here and last command was not error, time to finish flashing
+                                            if (bResponse)
+                                                FinishUpdate(false);
                                         }
-                                        while(SentFileSize);
-                                        printf("%s",aDone);
-
-                                        //if here and last command was not error, time to finish flashing
-                                        if (bResponse)
-                                            FinishUpdate(false);
                                     }
+                                    else
+                                        Print("\rError reading firmware file!\r\n");
+                                    Close(iFile);
                                 }
                                 else
-                                    Print("\rError reading firmware file!\r\n");
-                                Close(iFile);
+                                    printf("Error, couldn't open %s ...\r\n",ucFile);
                             }
                             else
-                            {
-                                printf("Error, couldn't open %s ...\r\n",ucFile);
-                                return 0;
-                            }
+                                printf("Error, %s is 0 bytes long...\r\n",ucFile);
                         }
                         else
+                            printf("Error, couldn't open %s ...\r\n",ucFile);
+                    }
+                    else //ok, we are going to try to update fw
+                    {
+                        if (ucIsFw)
+                            printf ("Ok, updating FW using server: %s port: %u\r\nFile path: %s\nPlease Wait, it can take up to a few minutes!\r\n",ucServer,uiPort,ucFile);
+                        else
+                            printf ("Ok, updating certificates using server: %s port: %u\r\nFile path: %s\nPlease Wait, it can take up to a few minutes!\r\n",ucServer,uiPort,ucFile);
+                        uiCMDLen = strlen(ucServer) + 3; //3 = 0 terminator + 2 bytes port
+                        uiCMDLen += strlen(ucFile);
+                        if (ucIsFw)
+                            TxByte('U'); //Request Update Main Firmware remotely
+                        else
+                            TxByte('u'); //Request Update spiffs remotely
+                        TxByte((unsigned char)((uiCMDLen&0xff00)>>8));
+                        TxByte((unsigned char)(uiCMDLen&0xff));
+                        TxByte((unsigned char)(uiPort&0xff));
+                        TxByte((unsigned char)((uiPort&0xff00)>>8));
+                        rx_data = 0;
+                        do
                         {
-                            printf("Error, %s is 0 bytes long...\r\n",ucFile);
+                            tx_data = ucServer[rx_data];
+                            TxByte(tx_data);
+                            --uiCMDLen;
+                            ++rx_data;
+                        }
+                        while((uiCMDLen)&&(tx_data!=0));
+                        rx_data = 0;
+                        do
+                        {
+                            tx_data = ucFile[rx_data];
+                            if (tx_data==0)
+                                break;
+                            TxByte(tx_data);
+                            --uiCMDLen;
+                            ++rx_data;
+                        }
+                        while(uiCMDLen);
+
+                        if (ucIsFw)
+                            bResponse = WaitForRXData(responseOTAFW,2,18000,true,false,NULL,0);
+                        else
+                            bResponse = WaitForRXData(responseOTASPIFF,2,18000,true,false,NULL,0);
+
+                        if (bResponse)
+                        {
+                            if ((!ucIsFw))
+                                printf("\rSuccess updating certificates!\r\n");
+                            else
+                                printf("\rSuccess, firmware updated, wait a minute so it is fully flashed.\r\n");
+                            FinishUpdate(true);
                             return 0;
                         }
-                    }
-                    else
-                    {
-                        printf("Error, couldn't open %s ...\r\n",ucFile);
-                        return 0;
-                    }
-                }
-                else //ok, we are going to try to update fw
-                {
-                    if (ucIsFw)
-                        printf ("Ok, updating FW using server: %s port: %u\r\nFile path: %s\nPlease Wait, it can take up to a few minutes!\r\n",ucServer,uiPort,ucFile);
-                    else
-                        printf ("Ok, updating certificates using server: %s port: %u\r\nFile path: %s\nPlease Wait, it can take up to a few minutes!\r\n",ucServer,uiPort,ucFile);
-                    uiCMDLen = strlen(ucServer) + 3; //3 = 0 terminator + 2 bytes port
-                    uiCMDLen += strlen(ucFile);
-                    if (ucIsFw)
-                        TxByte('U'); //Request Update Main Firmware remotely
-                    else
-                        TxByte('u'); //Request Update spiffs remotely
-                    TxByte((unsigned char)((uiCMDLen&0xff00)>>8));
-                    TxByte((unsigned char)(uiCMDLen&0xff));
-                    TxByte((unsigned char)(uiPort&0xff));
-                    TxByte((unsigned char)((uiPort&0xff00)>>8));
-                    rx_data = 0;
-                    do
-                    {
-                        tx_data = ucServer[rx_data];
-                        TxByte(tx_data);
-                        --uiCMDLen;
-                        ++rx_data;
-                    }
-                    while((uiCMDLen)&&(tx_data!=0));
-                    rx_data = 0;
-                    do
-                    {
-                        tx_data = ucFile[rx_data];
-                        if (tx_data==0)
-                            break;
-                        TxByte(tx_data);
-                        --uiCMDLen;
-                        ++rx_data;
-                    }
-                    while(uiCMDLen);
-
-                    if (ucIsFw)
-                        bResponse = WaitForRXData(responseOTAFW,2,18000,true,false,NULL,0);
-                    else
-                        bResponse = WaitForRXData(responseOTASPIFF,2,18000,true,false,NULL,0);
-
-                    if (bResponse)
-                    {
-                        if ((!ucIsFw))
-                            printf("\rSuccess updating certificates!\r\n");
                         else
-                            printf("\rSuccess, firmware updated, wait a minute so it is fully flashed.\r\n");
-                        FinishUpdate(true);
-                        return 0;
+                            printf("\rFailed to update from remote server...\r\n");
                     }
-                    else
-                        printf("\rFailed to update from remote server...\r\n");
                 }
             }
             else
@@ -706,11 +720,6 @@ int main(char** argv, int argc)
         }
         else
             printf("MSX Pico Wi-Fi Not Detected\r\n\n");
-        /*
-
-
-
-        */
     }
     else
         printf(strUsage);

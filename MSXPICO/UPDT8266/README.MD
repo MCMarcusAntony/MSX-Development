@@ -1,10 +1,10 @@
-# UPDT8266 v1.00
+# UPDT8266 v1.10
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/R6R2BRGX6)
 
 Simple Tool to Update Firmware of ESP in your MSX Pico
 
-Copyright (c) 2024 Oduvaldo Pavan Junior ( ducasp@ gmail.com )
+Copyright (c) 2024 - 2025 Oduvaldo Pavan Junior ( ducasp@ gmail.com )
 All rights reserved.
 
 Requires SDCC and Fusion-C library to compile
