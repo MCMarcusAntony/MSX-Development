@@ -10,9 +10,11 @@
 ; Note: this implementation depends upon ESP8266 having the UNAPI
 ; firmware flashed. This firmware has been developed by me as well.
 ;
-; Comercial usage of this code or derivative works of this code are
-; allowed ONLY upon agreement with the author.
-; Non-comercial usage is free as long as you publish your code changes
+; Usage is free as long as you publish your code changes. If you make a profit
+; selling something using this code, a suggestion is that you donate one or two
+; pieces of the hardware to the MSX DEV contest to be awarded to MSX DEV winners
+; as this shouldn't cost much and perhaps will bring interest on developers to
+; make games that support internet :)
 ;
 
 ;*******************
