@@ -56,7 +56,7 @@ set_global_assignment -name VHDL_FILE ../esemsx3/src/peripheral/midi.vhd
 set_global_assignment -name VHDL_FILE ../esemsx3/src/peripheral/ram.vhd
 set_global_assignment -name VHDL_FILE src_addons/peripheral/sm_swioports.vhd
 set_global_assignment -name VHDL_FILE ../esemsx3/src/peripheral/systemtimer.vhd
-set_global_assignment -name VHDL_FILE ../esemsx3/src/peripheral/UART.vhd
+set_global_assignment -name VHDL_FILE ../esemsx3/src/peripheral/uart_lite.vhd
 set_global_assignment -name VHDL_FILE src_addons/cpu/T80.vhd
 set_global_assignment -name VHDL_FILE src_addons/cpu/T80_ALU.vhd
 set_global_assignment -name VHDL_FILE src_addons/cpu/T80_MCode.vhd

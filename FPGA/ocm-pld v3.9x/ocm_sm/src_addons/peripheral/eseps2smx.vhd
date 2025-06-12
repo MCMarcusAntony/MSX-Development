@@ -464,7 +464,7 @@ begin
               oFkeys(7) := Ps2Shif;
               Ps2Chg := '1';
             -- Added from sm_eseps2.v adapted here:
-            -- CTRL Left == 'h14   (memo: CTRL Right == 'hE0:'h14 is EXECUTE, not CTRL)
+            -- CTRL Left == 'h14   (Memo: CTRL Right == 'hE0:'h14 is EXECUTE, not CTRL)
             elsif( Ps2Dat = X"14" and Ps2xE1 = '0' and Ps2xE0 = '0' )then -- control make, Added by t.hara, 2021/Aug/6th
               Ps2Ctrl:= not Ps2brk;
               oFkeys(6) := Ps2Ctrl;

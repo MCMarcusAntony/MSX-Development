@@ -114,7 +114,7 @@ begin
         if( reset = '1' )then
             rega <= (others => '0');
         elsif( clk21m'event and clk21m = '1' )then
-            -- psg register #15 bit6 - joystick select : 0=porta, 1=portb
+            -- psg register #15 bit6 - joystick select : 0=port-a, 1=port-b
             if( regb(6) = '0' )then
                 rega(5 downto 0) <= joya_in;
             else
@@ -164,30 +164,26 @@ begin
 
     process( reset, clk21m )
     begin
-        if( clk21m'event and clk21m = '1' )then
-            if( reset = '1' )then
-                joya_out <= (others => 'Z');
-            else
-                -- No Z for MC2P as joy outs are used only internally
-                -- Z will cause anyone trying to depend on it to have
-                -- it stuck at GND
-                joya_out <= regb(1 downto 0);
-            end if;
+        if( reset = '1' )then
+            joya_out <= (others => 'Z');
+        elsif( clk21m'event and clk21m = '1' )then
+            -- No Z for MC2P as joy outs are used only internally
+            -- Z will cause anyone trying to depend on it to have
+            -- it stuck at GND
+            joya_out <= regb(1 downto 0);
         end if;
     end process;
 
     process( reset, clk21m )
     begin
-        if( clk21m'event and clk21m = '1' )then
-            if( reset = '1' )then
-                joyb_out <= (others => 'Z');
-            else
-                -- trigger a/b output joystick portb
-                -- No Z for MC2P as joy outs are used only internally
-                -- Z will cause anyone trying to depend on it to have
-                -- it stuck at GND
-                joyb_out <= regb(3 downto 2);
-            end if;
+        if( reset = '1' )then
+            joyb_out <= (others => 'Z');
+        elsif( clk21m'event and clk21m = '1' )then
+            -- trigger a/b output joystick portb
+            -- No Z for MC2P as joy outs are used only internally
+            -- Z will cause anyone trying to depend on it to have
+            -- it stuck at GND
+            joyb_out <= regb(3 downto 2);
         end if;
     end process;
 
